@@ -1,5 +1,6 @@
 const std = @import("std");
 const Allocator = @import("std").mem.Allocator;
+const Arena = @import("std").heap.ArenaAllocator;
 
 pub fn bubble_sort(comptime T: type, arr: []T) void {
     for (0..arr.len - 1) |i| {
@@ -53,4 +54,88 @@ fn partition(comptime T: type, arr: []T, lo: usize, hi: usize) usize {
     arr[@bitCast(idx)] = pvt;
 
     return @bitCast(idx);
+}
+
+pub fn Node(comptime T: type) type {
+    return struct {
+        val: T,
+        next: ?*Self,
+        prev: ?*Self,
+
+        const Self = @This();
+
+        pub fn init(val: T) Self {
+            return .{
+                .val = val,
+                .next = null,
+                .prev = null,
+            };
+        }
+    };
+}
+
+pub fn Stack(comptime T: type) type {
+    return struct {
+        len: usize,
+        top: ?*Node(T),
+        arena: Arena,
+
+        const Self = @This();
+
+        pub fn init(allocator: Allocator) Self {
+            const arena = std.heap.ArenaAllocator.init(allocator);
+
+            return .{
+                .len = 0,
+                .top = null,
+                .arena = arena,
+            };
+        }
+
+        pub fn append(self: *Self, item: Node(T)) !void {
+            const alloc = self.arena.allocator();
+
+            const node = try alloc.create(@TypeOf(item));
+            node.* = item;
+
+            self.len += 1;
+
+            if (self.top) |_| {
+                node.*.prev = self.top;
+                self.top = node;
+
+                return;
+            }
+
+            self.top = node;
+        }
+
+        pub fn pop(self: *Self) ?Node(T) {
+            if (self.top) |_| {
+                const alloc = self.arena.allocator();
+
+                const node = self.top.?;
+
+                self.top = node.*.prev;
+                self.len -= 1;
+                defer alloc.destroy(node);
+
+                return node.*;
+            }
+
+            return null;
+        }
+
+        pub fn peek(self: Self) ?T {
+            if (self.top) |top| {
+                return top.*.val;
+            }
+
+            return null;
+        }
+
+        pub fn deinit(self: Self) void {
+            self.arena.deinit();
+        }
+    };
 }
