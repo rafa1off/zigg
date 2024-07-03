@@ -1,8 +1,9 @@
 const std = @import("std");
-const Allocator = @import("std").mem.Allocator;
-const Arena = @import("std").heap.ArenaAllocator;
+const Allocator = std.mem.Allocator;
+const Arena = std.heap.ArenaAllocator;
+const Vec = std.ArrayList;
 
-pub fn bubble_sort(comptime T: type, arr: []T) void {
+pub fn bubbleSort(comptime T: type, arr: []T) void {
     for (0..arr.len - 1) |i| {
         for (0..arr.len - 1 - i) |j| {
             if (arr[j] > arr[j + 1]) {
@@ -14,7 +15,7 @@ pub fn bubble_sort(comptime T: type, arr: []T) void {
     }
 }
 
-pub fn is_sorted(comptime T: type, arr: []T) bool {
+pub fn sorted(comptime T: type, arr: []T) bool {
     for (0..arr.len - 1) |i| {
         if (arr[i] > arr[i + 1]) {
             return false;
@@ -24,15 +25,15 @@ pub fn is_sorted(comptime T: type, arr: []T) bool {
     return true;
 }
 
-pub fn quick_sort(comptime T: type, arr: []T, lo: usize, hi: usize) void {
+pub fn quickSort(comptime T: type, arr: []T, lo: usize, hi: usize) void {
     if (lo >= hi) {
         return;
     }
 
-    const pvtIdx = partition(T, arr, lo, hi);
+    const pvt_idx = partition(T, arr, lo, hi);
 
-    quick_sort(T, arr, lo, pvtIdx - 1);
-    quick_sort(T, arr, pvtIdx + 1, hi);
+    quickSort(T, arr, lo, pvt_idx - 1);
+    quickSort(T, arr, pvt_idx + 1, hi);
 }
 
 fn partition(comptime T: type, arr: []T, lo: usize, hi: usize) usize {
@@ -56,7 +57,7 @@ fn partition(comptime T: type, arr: []T, lo: usize, hi: usize) usize {
     return @bitCast(idx);
 }
 
-pub fn Node(comptime T: type) type {
+pub fn ListNode(comptime T: type) type {
     return struct {
         val: T,
         next: ?*Self,
@@ -77,26 +78,24 @@ pub fn Node(comptime T: type) type {
 pub fn Stack(comptime T: type) type {
     return struct {
         len: usize,
-        top: ?*Node(T),
+        top: ?*ListNode(T),
         arena: Arena,
 
         const Self = @This();
 
         pub fn init(allocator: Allocator) Self {
-            const arena = std.heap.ArenaAllocator.init(allocator);
-
             return .{
                 .len = 0,
                 .top = null,
-                .arena = arena,
+                .arena = std.heap.ArenaAllocator.init(allocator),
             };
         }
 
-        pub fn append(self: *Self, item: Node(T)) !void {
+        pub fn push(self: *Self, val: T) !void {
             const alloc = self.arena.allocator();
 
-            const node = try alloc.create(@TypeOf(item));
-            node.* = item;
+            const node = try alloc.create(ListNode(T));
+            node.* = ListNode(T).init(val);
 
             self.len += 1;
 
@@ -110,17 +109,15 @@ pub fn Stack(comptime T: type) type {
             self.top = node;
         }
 
-        pub fn pop(self: *Self) ?Node(T) {
-            if (self.top) |_| {
+        pub fn pop(self: *Self) ?T {
+            if (self.top) |node| {
                 const alloc = self.arena.allocator();
-
-                const node = self.top.?;
 
                 self.top = node.*.prev;
                 self.len -= 1;
                 defer alloc.destroy(node);
 
-                return node.*;
+                return node.*.val;
             }
 
             return null;
@@ -138,4 +135,266 @@ pub fn Stack(comptime T: type) type {
             self.arena.deinit();
         }
     };
+}
+
+pub fn Queue(comptime T: type) type {
+    return struct {
+        len: usize,
+        head: ?*ListNode(T),
+        tail: ?*ListNode(T),
+        arena: Arena,
+
+        const Self = @This();
+
+        pub fn init(alloc: Allocator) Self {
+            return .{
+                .len = 0,
+                .head = null,
+                .tail = null,
+                .arena = std.heap.ArenaAllocator.init(alloc),
+            };
+        }
+
+        pub fn enqueue(self: *Self, val: T) !void {
+            const alloc = self.arena.allocator();
+
+            const node = try alloc.create(ListNode(T));
+            node.* = ListNode(T).init(val);
+
+            self.len += 1;
+
+            if (self.head == null) {
+                self.head = node;
+
+                return;
+            }
+
+            if (self.tail == null) {
+                self.tail = node;
+
+                self.head.?.next = self.tail;
+                self.tail.?.prev = self.head;
+
+                return;
+            }
+
+            self.tail.?.next = node;
+            node.prev = self.tail;
+            self.tail = node;
+            self.tail.?.next = null;
+        }
+
+        pub fn dequeue(self: *Self) ?T {
+            if (self.head == null or self.tail == null) {
+                if (self.len > 0) {
+                    self.len -= 1;
+                }
+
+                return null;
+            }
+
+            self.len -= 1;
+
+            const node = self.head.?;
+            defer self.arena.allocator().destroy(node);
+
+            self.head = node.next;
+
+            return node.*.val;
+        }
+
+        pub fn first(self: Self) ?T {
+            if (self.head) |head| {
+                return head.val;
+            }
+
+            return null;
+        }
+
+        pub fn last(self: Self) ?T {
+            if (self.tail) |tail| {
+                return tail.val;
+            }
+
+            return null;
+        }
+
+        pub fn deinit(self: Self) void {
+            self.arena.deinit();
+        }
+    };
+}
+
+pub fn BinaryTreeNode(comptime T: type) type {
+    return struct {
+        val: T,
+        right: ?*Self,
+        left: ?*Self,
+
+        const Self = @This();
+
+        pub fn init(val: T) Self {
+            return .{
+                .val = val,
+                .left = null,
+                .right = null,
+            };
+        }
+
+        pub fn insertLeft(self: *Self, node: *Self) void {
+            if (self.left) |left| {
+                if (node.val <= left.val) {
+                    left.insertLeft(node);
+                } else {
+                    left.insertRight(node);
+                }
+            } else {
+                self.left = node;
+            }
+        }
+
+        pub fn insertRight(self: *Self, node: *Self) void {
+            if (self.right) |right| {
+                if (node.val > right.val) {
+                    right.insertRight(node);
+                } else {
+                    right.insertLeft(node);
+                }
+            } else {
+                self.right = node;
+            }
+        }
+    };
+}
+
+pub fn BSTree(comptime T: type) type {
+    return struct {
+        root: ?*BinaryTreeNode(T),
+        arena: Arena,
+
+        const Self = @This();
+
+        pub fn init(allocator: Allocator) Self {
+            return .{
+                .root = null,
+                .arena = std.heap.ArenaAllocator.init(allocator),
+            };
+        }
+
+        pub fn insert(self: *Self, val: T) !void {
+            const alloc = self.arena.allocator();
+
+            const node = try alloc.create(BinaryTreeNode(T));
+            node.* = BinaryTreeNode(T).init(val);
+
+            if (self.root) |root| {
+                if (val <= root.val) {
+                    root.insertLeft(node);
+                } else {
+                    root.insertRight(node);
+                }
+
+                return;
+            }
+
+            self.root = node;
+        }
+
+        pub fn preOrderSearch(self: *Self) !Vec(T) {
+            var arr = Vec(T).init(self.arena.allocator());
+
+            try preWalk(T, self.root, &arr);
+
+            return arr;
+        }
+
+        pub fn inOrderSearch(self: *Self) !Vec(T) {
+            var arr = Vec(T).init(self.arena.allocator());
+
+            try inWalk(T, self.root, &arr);
+
+            return arr;
+        }
+
+        pub fn postOrderSearch(self: *Self) !Vec(T) {
+            var arr = Vec(T).init(self.arena.allocator());
+
+            try postWalk(T, self.root, &arr);
+
+            return arr;
+        }
+
+        pub fn bfs(self: *Self, val: T) !bool {
+            var queue = Queue(*BinaryTreeNode(T)).init(self.arena.allocator());
+            defer queue.deinit();
+
+            if (self.root) |root| {
+                try queue.enqueue(root);
+            } else {
+                return false;
+            }
+
+            while (queue.len > 0) {
+                const curr = queue.dequeue();
+                if (curr == null) {
+                    continue;
+                }
+
+                const node = curr.?;
+                std.debug.print("{any}\n", .{node.val});
+
+                if (node.val == val) {
+                    return true;
+                }
+
+                if (node.left) |lnode| {
+                    try queue.enqueue(lnode);
+                }
+
+                if (node.right) |rnode| {
+                    try queue.enqueue(rnode);
+                }
+            }
+
+            return false;
+        }
+
+        pub fn deinit(self: Self) void {
+            self.arena.deinit();
+        }
+    };
+}
+
+fn preWalk(comptime T: type, curr: ?*BinaryTreeNode(T), path: *Vec(T)) !void {
+    if (curr == null) {
+        return;
+    }
+
+    try path.append(curr.?.val);
+
+    try preWalk(T, curr.?.left, path);
+    try preWalk(T, curr.?.right, path);
+}
+
+fn inWalk(comptime T: type, curr: ?*BinaryTreeNode(T), path: *Vec(T)) !void {
+    if (curr == null) {
+        return;
+    }
+
+    try inWalk(T, curr.?.left, path);
+
+    try path.append(curr.?.val);
+
+    try inWalk(T, curr.?.right, path);
+}
+
+fn postWalk(comptime T: type, curr: ?*BinaryTreeNode(T), path: *Vec(T)) !void {
+    if (curr == null) {
+        return;
+    }
+
+    try postWalk(T, curr.?.left, path);
+    try postWalk(T, curr.?.right, path);
+
+    try path.append(curr.?.val);
 }
