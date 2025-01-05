@@ -38,23 +38,23 @@ pub fn quickSort(comptime T: type, arr: []T, lo: usize, hi: usize) void {
 
 fn partition(comptime T: type, arr: []T, lo: usize, hi: usize) usize {
     const pvt = arr[hi];
-    var idx: isize = @bitCast(lo);
-    idx -= 1;
+    var i: isize = @bitCast(lo);
+    i -= 1;
 
-    for (lo..hi) |i| {
-        if (arr[i] < pvt) {
-            idx += 1;
-            const tmp = arr[i];
-            arr[i] = arr[@bitCast(idx)];
-            arr[@bitCast(idx)] = tmp;
+    for (lo..hi) |j| {
+        if (arr[j] < pvt) {
+            i += 1;
+            const tmp = arr[j];
+            arr[j] = arr[@bitCast(i)];
+            arr[@bitCast(i)] = tmp;
         }
     }
 
-    idx += 1;
-    arr[hi] = arr[@bitCast(idx)];
-    arr[@bitCast(idx)] = pvt;
+    i += 1;
+    arr[hi] = arr[@bitCast(i)];
+    arr[@bitCast(i)] = pvt;
 
-    return @bitCast(idx);
+    return @bitCast(i);
 }
 
 pub fn ListNode(comptime T: type) type {
@@ -99,8 +99,8 @@ pub fn Stack(comptime T: type) type {
 
             self.len += 1;
 
-            if (self.top) |_| {
-                node.*.prev = self.top;
+            if (self.top) |prev| {
+                node.*.prev = prev;
                 self.top = node;
 
                 return;
@@ -117,7 +117,7 @@ pub fn Stack(comptime T: type) type {
                 self.len -= 1;
                 defer alloc.destroy(node);
 
-                return node.*.val;
+                return node.val;
             }
 
             return null;
@@ -165,11 +165,6 @@ pub fn Queue(comptime T: type) type {
 
             if (self.head == null) {
                 self.head = node;
-
-                return;
-            }
-
-            if (self.tail == null) {
                 self.tail = node;
 
                 self.head.?.next = self.tail;
@@ -324,7 +319,7 @@ pub fn BSTree(comptime T: type) type {
             return arr;
         }
 
-        pub fn bfs(self: *Self, val: T) !bool {
+        pub fn breathFirstSearch(self: *Self, val: T) !bool {
             var queue = Queue(*BinaryTreeNode(T)).init(self.arena.allocator());
             defer queue.deinit();
 
@@ -335,13 +330,7 @@ pub fn BSTree(comptime T: type) type {
             }
 
             while (queue.len > 0) {
-                const curr = queue.dequeue();
-                if (curr == null) {
-                    continue;
-                }
-
-                const node = curr.?;
-                std.debug.print("{any}\n", .{node.val});
+                const node = queue.dequeue() orelse continue;
 
                 if (node.val == val) {
                     return true;

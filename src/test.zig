@@ -5,25 +5,26 @@ const inf = @import("interfaces.zig");
 const expect = std.testing.expect;
 const assert = std.testing.expectEqual;
 const print = std.debug.print;
+const Base64 = @import("Base64.zig");
 
 test "bubble sort" {
     var arr = [_]u32{ 35, 22, 9, 12, 65, 54 };
 
-    dsa.bubble_sort(@TypeOf(arr[0]), &arr);
+    dsa.bubbleSort(@TypeOf(arr[0]), &arr);
 
     // print("arr: {any}\n", .{arr});
 
-    try expect(dsa.is_sorted(@TypeOf(arr[0]), &arr));
+    try expect(dsa.sorted(@TypeOf(arr[0]), &arr));
 }
 
 test "quick sort" {
     var arr = [_]u8{ 35, 22, 9, 12, 65, 54 };
 
-    dsa.quick_sort(@TypeOf(arr[0]), &arr, 0, arr.len - 1);
+    dsa.quickSort(@TypeOf(arr[0]), &arr, 0, arr.len - 1);
 
     // print("arr: {any}\n", .{arr});
 
-    try expect(dsa.is_sorted(@TypeOf(arr[0]), &arr));
+    try expect(dsa.sorted(@TypeOf(arr[0]), &arr));
 }
 
 test "stack" {
@@ -35,15 +36,22 @@ test "stack" {
     try stack.push(val + 1);
     _ = stack.pop();
     try stack.push(val + 2);
+    try stack.push(val + 3);
     _ = stack.pop();
 
-    try assert(1, stack.peek());
+    try assert(3, stack.peek());
 }
 
 test "interface" {
-    const foo = inf.Foo([]const u8).init("halo");
+    const T = []const u8;
+    var foo = inf.Foo(T).init("halo foo");
+    var bar = inf.Bar(T).init("halo bar");
 
-    foo.handler().handle();
+    var foo_handler = foo.handler();
+    var bar_handler = bar.handler();
+
+    foo_handler.handle();
+    bar_handler.handle();
 }
 
 test "queue" {
@@ -62,7 +70,8 @@ test "queue" {
 }
 
 test "tree" {
-    var tree = dsa.BSTree(u32).init(allocator);
+    const T = u8;
+    var tree = dsa.BSTree(T).init(allocator);
     defer tree.deinit();
 
     try tree.insert(5);
@@ -80,16 +89,31 @@ test "tree" {
     const post = try tree.postOrderSearch();
     defer post.deinit();
 
-    std.debug.print("\n", .{});
-    std.debug.print("arr: {any}\n", .{pre.items});
-    std.debug.print("arr: {any}\n", .{in.items});
-    std.debug.print("arr: {any}\n", .{post.items});
+    try expect(std.mem.eql(T, &[_]T{ 5, 2, 3, 8, 6 }, pre.items));
+    try expect(std.mem.eql(T, &[_]T{ 2, 3, 5, 6, 8 }, in.items));
+    try expect(std.mem.eql(T, &[_]T{ 3, 2, 6, 8, 5 }, post.items));
 
-    const bfs1 = try tree.bfs(6);
-    const bfs2 = try tree.bfs(2);
-    const bfs3 = try tree.bfs(7);
+    const bfs1 = try tree.breathFirstSearch(6);
+    const bfs2 = try tree.breathFirstSearch(2);
+    const bfs3 = try tree.breathFirstSearch(10);
 
     try expect(bfs1);
     try expect(bfs2);
     try expect(!bfs3);
+}
+
+test "base64 encode" {
+    const base64 = Base64.init();
+    const out = try base64.encode(allocator, "Hi");
+    defer allocator.free(out);
+
+    try expect(std.mem.eql(u8, "SGk=", out));
+}
+
+test "base64 decode" {
+    const base64 = Base64.init();
+    const out = try base64.decode(allocator, "SGk=");
+    defer allocator.free(out);
+
+    try expect(std.mem.eql(u8, "Hi", out));
 }

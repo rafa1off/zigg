@@ -1,24 +1,17 @@
 const std = @import("std");
+const stdout = std.io.getStdOut().writer();
+const Base64 = @import("Base64.zig");
 
 pub fn main() !void {
-    // Prints to stderr (it's a shortcut based on `std.io.getStdErr()`)
-    const str = "codebase";
-    std.debug.print("All your {s} are belong to us.\n", .{str});
+    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    const allocator = gpa.allocator();
 
-    // stdout is for the actual output of your application, for example if you
-    // are implementing gzip, then only the compressed bytes should be sent to
-    // stdout, not any debugging messages.
-    const stdout_file = std.io.getStdOut().writer();
-    var bw = std.io.bufferedWriter(stdout_file);
-    const stdout = bw.writer();
-    try stdout.print("Run `zig build test` to run the tests.\n", .{});
+    const base64 = Base64.init();
+    const out = try base64.encode(allocator, "Hi");
+    defer allocator.free(out);
 
-    try bw.flush(); // don't forget to flush!
-}
+    const out1 = try base64.decode(allocator, out);
+    defer allocator.free(out1);
 
-test "simple test" {
-    var list = std.ArrayList(i32).init(std.testing.allocator);
-    defer list.deinit(); // try commenting this out and see if zig detects the memory leak!
-    try list.append(42);
-    try std.testing.expectEqual(@as(i32, 42), list.pop());
+    try stdout.print("{s}\n", .{out1});
 }
