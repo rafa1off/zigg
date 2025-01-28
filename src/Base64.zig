@@ -3,14 +3,16 @@ const Allocator = std.mem.Allocator;
 const Self = @This();
 
 table: *const [64]u8,
+allocator: Allocator,
 
-pub fn init() Self {
+pub fn init(allocator: Allocator) Self {
     const upper = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
     const lower = "abcdefghijklmnopqrstuvwxyz";
     const numbers_symb = "0123456789+/";
 
     return .{
         .table = upper ++ lower ++ numbers_symb,
+        .allocator = allocator,
     };
 }
 
@@ -34,13 +36,13 @@ fn char_index(self: Self, char: u8) u8 {
     return idx;
 }
 
-pub fn encode(self: Self, allocator: Allocator, input: []const u8) ![]u8 {
+pub fn encode(self: Self, input: []const u8) ![]u8 {
     if (input.len == 0) {
         return "";
     }
 
     const n_out = try calc_encode_length(input);
-    var out = try allocator.alloc(u8, n_out);
+    var out = try self.allocator.alloc(u8, n_out);
     var buf = [3]u8{ 0, 0, 0 };
     var count: usize = 0;
     var iout: usize = 0;
@@ -77,13 +79,13 @@ pub fn encode(self: Self, allocator: Allocator, input: []const u8) ![]u8 {
     return out;
 }
 
-pub fn decode(self: Self, allocator: Allocator, input: []const u8) ![]u8 {
+pub fn decode(self: Self, input: []const u8) ![]u8 {
     if (input.len == 0) {
         return "";
     }
 
     const n_out = try calc_decode_length(input);
-    var out = try allocator.alloc(u8, n_out);
+    var out = try self.allocator.alloc(u8, n_out);
     var buf = [4]u8{ 0, 0, 0, 0 };
     var count: usize = 0;
     var iout: usize = 0;
@@ -130,7 +132,8 @@ fn calc_decode_length(input: []const u8) !usize {
 
     out *= 3;
 
-    for (input) |i| {
+    const second_last: usize = input.len - 2;
+    for (input[second_last..]) |i| {
         if (i == '=') {
             out -= 1;
         }

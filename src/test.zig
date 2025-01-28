@@ -103,16 +103,16 @@ test "tree" {
 }
 
 test "base64 encode" {
-    const base64 = Base64.init();
-    const out = try base64.encode(allocator, "Hi");
+    const base64 = Base64.init(allocator);
+    const out = try base64.encode("Hi");
     defer allocator.free(out);
 
     try expect(std.mem.eql(u8, "SGk=", out));
 }
 
 test "base64 decode" {
-    const base64 = Base64.init();
-    const out = try base64.decode(allocator, "SGk=");
+    const base64 = Base64.init(allocator);
+    const out = try base64.decode("SGk=");
     defer allocator.free(out);
 
     try expect(std.mem.eql(u8, "Hi", out));

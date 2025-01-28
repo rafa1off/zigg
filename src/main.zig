@@ -6,12 +6,17 @@ pub fn main() !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     const allocator = gpa.allocator();
 
-    const base64 = Base64.init();
-    const out = try base64.encode(allocator, "Hi");
+    // const file = try std.fs.openFileAbsolute("/home/rawa/Dropbox/scrum.pdf", .{});
+    // defer file.close();
+    // const bytes = try file.readToEndAlloc(allocator, 5 * 1024 * 1024 * 1024);
+    // defer allocator.free(bytes);
+
+    const base64 = Base64.init(allocator);
+    const in = try base64.encode("Hi");
+    defer allocator.free(in);
+
+    const out = try base64.decode(in);
     defer allocator.free(out);
 
-    const out1 = try base64.decode(allocator, out);
-    defer allocator.free(out1);
-
-    try stdout.print("{s}\n", .{out1});
+    try stdout.print("encoded: {s}\ndecoded: {s}\n", .{ in, out });
 }

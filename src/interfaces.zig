@@ -1,13 +1,13 @@
 const std = @import("std");
 
 const Handler = struct {
-    ctx: *anyopaque,
+    ptr: *anyopaque,
     handleFn: *const fn (ctx: *anyopaque) void,
 
     const Self = @This();
 
     pub fn handle(self: *Self) void {
-        self.handleFn(self.ctx);
+        self.handleFn(self.ptr);
     }
 };
 
@@ -25,7 +25,7 @@ pub fn Foo(comptime T: type) type {
 
         pub fn handler(self: *Self) Handler {
             return .{
-                .ctx = self,
+                .ptr = self,
                 .handleFn = &handle,
             };
         }

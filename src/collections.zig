@@ -92,9 +92,9 @@ pub fn Stack(comptime T: type) type {
         }
 
         pub fn push(self: *Self, val: T) !void {
-            const alloc = self.arena.allocator();
+            const aa = self.arena.allocator();
 
-            const node = try alloc.create(ListNode(T));
+            const node = try aa.create(ListNode(T));
             node.* = ListNode(T).init(val);
 
             self.len += 1;
@@ -102,33 +102,25 @@ pub fn Stack(comptime T: type) type {
             if (self.top) |prev| {
                 node.*.prev = prev;
                 self.top = node;
-
-                return;
+            } else {
+                self.top = node;
             }
-
-            self.top = node;
         }
 
         pub fn pop(self: *Self) ?T {
             if (self.top) |node| {
-                const alloc = self.arena.allocator();
+                const aa = self.arena.allocator();
 
                 self.top = node.*.prev;
                 self.len -= 1;
-                defer alloc.destroy(node);
+                defer aa.destroy(node);
 
                 return node.val;
-            }
-
-            return null;
+            } else return null;
         }
 
         pub fn peek(self: Self) ?T {
-            if (self.top) |top| {
-                return top.*.val;
-            }
-
-            return null;
+            if (self.top) |top| return top.*.val else return null;
         }
 
         pub fn deinit(self: Self) void {
@@ -199,19 +191,13 @@ pub fn Queue(comptime T: type) type {
         }
 
         pub fn first(self: Self) ?T {
-            if (self.head) |head| {
-                return head.val;
-            }
-
-            return null;
+            const head = self.head orelse return null;
+            return head.val;
         }
 
         pub fn last(self: Self) ?T {
-            if (self.tail) |tail| {
-                return tail.val;
-            }
-
-            return null;
+            const tail = self.tail orelse return null;
+            return tail.val;
         }
 
         pub fn deinit(self: Self) void {
@@ -243,9 +229,7 @@ pub fn BinaryTreeNode(comptime T: type) type {
                 } else {
                     left.insertRight(node);
                 }
-            } else {
-                self.left = node;
-            }
+            } else self.left = node;
         }
 
         pub fn insertRight(self: *Self, node: *Self) void {
@@ -255,9 +239,7 @@ pub fn BinaryTreeNode(comptime T: type) type {
                 } else {
                     right.insertLeft(node);
                 }
-            } else {
-                self.right = node;
-            }
+            } else self.right = node;
         }
     };
 }
@@ -290,9 +272,7 @@ pub fn BSTree(comptime T: type) type {
                 }
 
                 return;
-            }
-
-            self.root = node;
+            } else self.root = node;
         }
 
         pub fn preOrderSearch(self: *Self) !Vec(T) {
@@ -325,24 +305,16 @@ pub fn BSTree(comptime T: type) type {
 
             if (self.root) |root| {
                 try queue.enqueue(root);
-            } else {
-                return false;
-            }
+            } else return false;
 
             while (queue.len > 0) {
                 const node = queue.dequeue() orelse continue;
 
-                if (node.val == val) {
-                    return true;
-                }
+                if (node.val == val) return true;
 
-                if (node.left) |lnode| {
-                    try queue.enqueue(lnode);
-                }
+                if (node.left) |lnode| try queue.enqueue(lnode);
 
-                if (node.right) |rnode| {
-                    try queue.enqueue(rnode);
-                }
+                if (node.right) |rnode| try queue.enqueue(rnode);
             }
 
             return false;
@@ -355,35 +327,31 @@ pub fn BSTree(comptime T: type) type {
 }
 
 fn preWalk(comptime T: type, curr: ?*BinaryTreeNode(T), path: *Vec(T)) !void {
-    if (curr == null) {
-        return;
-    }
+    if (curr == null) return;
 
-    try path.append(curr.?.val);
+    const node = curr.?;
 
-    try preWalk(T, curr.?.left, path);
-    try preWalk(T, curr.?.right, path);
+    try path.append(node.val);
+    try preWalk(T, node.left, path);
+    try preWalk(T, node.right, path);
 }
 
 fn inWalk(comptime T: type, curr: ?*BinaryTreeNode(T), path: *Vec(T)) !void {
-    if (curr == null) {
-        return;
-    }
+    if (curr == null) return;
 
-    try inWalk(T, curr.?.left, path);
+    const node = curr.?;
 
-    try path.append(curr.?.val);
-
-    try inWalk(T, curr.?.right, path);
+    try inWalk(T, node.left, path);
+    try path.append(node.val);
+    try inWalk(T, node.right, path);
 }
 
 fn postWalk(comptime T: type, curr: ?*BinaryTreeNode(T), path: *Vec(T)) !void {
-    if (curr == null) {
-        return;
-    }
+    if (curr == null) return;
 
-    try postWalk(T, curr.?.left, path);
-    try postWalk(T, curr.?.right, path);
+    const node = curr.?;
 
-    try path.append(curr.?.val);
+    try postWalk(T, node.left, path);
+    try postWalk(T, node.right, path);
+    try path.append(node.val);
 }
