@@ -1,20 +1,30 @@
 const std = @import("std");
+const testing = std.testing;
+
 const allocator = std.testing.allocator;
-const dsa = @import("collections.zig");
-const inf = @import("interfaces.zig");
 const expect = std.testing.expect;
 const assert = std.testing.expectEqual;
 const print = std.debug.print;
-const Base64 = @import("Base64.zig");
+
+pub const Base64 = @import("Base64.zig");
+pub const dsa = @import("collections.zig");
+pub const inf = @import("interfaces.zig");
+
+pub export fn add(a: i32, b: i32) i32 {
+    return a + b;
+}
+
+test "basic add functionality" {
+    try testing.expect(add(3, 7) == 10);
+}
 
 test "bubble sort" {
     var arr = [_]u32{ 35, 22, 9, 12, 65, 54 };
+    const T = @TypeOf(arr[0]);
 
-    dsa.bubbleSort(@TypeOf(arr[0]), &arr);
+    dsa.bubbleSort(T, &arr);
 
-    // print("arr: {any}\n", .{arr});
-
-    try expect(dsa.sorted(@TypeOf(arr[0]), &arr));
+    try expect(dsa.sorted(T, &arr));
 }
 
 test "quick sort" {
@@ -58,6 +68,9 @@ test "queue" {
     var queue = dsa.Queue(u32).init(allocator);
     defer queue.deinit();
 
+    try assert(null, queue.first());
+    try assert(null, queue.last());
+
     try queue.enqueue(1);
     try queue.enqueue(2);
     _ = queue.dequeue();
@@ -81,13 +94,8 @@ test "tree" {
     try tree.insert(6);
 
     const pre = try tree.preOrderSearch();
-    defer pre.deinit();
-
     const in = try tree.inOrderSearch();
-    defer in.deinit();
-
     const post = try tree.postOrderSearch();
-    defer post.deinit();
 
     try expect(std.mem.eql(T, &[_]T{ 5, 2, 3, 8, 6 }, pre.items));
     try expect(std.mem.eql(T, &[_]T{ 2, 3, 5, 6, 8 }, in.items));
@@ -102,18 +110,34 @@ test "tree" {
     try expect(!bfs3);
 }
 
-test "base64 encode" {
-    const base64 = Base64.init(allocator);
-    const out = try base64.encode("Hi");
-    defer allocator.free(out);
+test "base64" {
+    const base64 = Base64.init();
 
-    try expect(std.mem.eql(u8, "SGk=", out));
+    const encoded = try base64.encode(allocator, "Hi");
+    const decoded = try base64.decode(allocator, "SGk=");
+
+    defer {
+        allocator.free(encoded);
+        allocator.free(decoded);
+    }
+
+    try expect(std.mem.eql(u8, "SGk=", encoded));
+    try expect(std.mem.eql(u8, "Hi", decoded));
 }
 
-test "base64 decode" {
-    const base64 = Base64.init(allocator);
-    const out = try base64.decode("SGk=");
-    defer allocator.free(out);
+test "string" {
+    var str = try dsa.String.init(allocator).from("rafael");
+    defer str.deinit();
 
-    try expect(std.mem.eql(u8, "Hi", out));
+    try str.reverse();
+
+    try expect(std.mem.eql(u8, str.data, "leafar"));
+    try expect(str.len == 6);
+
+    try str.set("enzo");
+
+    try str.reverse();
+
+    try expect(std.mem.eql(u8, str.data, "ozne"));
+    try expect(str.len == 4);
 }

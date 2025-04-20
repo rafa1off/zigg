@@ -4,11 +4,7 @@
 
     .minimum_zig_version = "0.13.0",
 
-    .dependencies = .{
-        .libzigg = .{
-            .path = "pkg/libzigg",
-        },
-    },
+    .dependencies = .{},
 
     .paths = .{
         "build.zig",

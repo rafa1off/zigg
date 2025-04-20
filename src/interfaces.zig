@@ -57,7 +57,7 @@ pub fn Bar(comptime T: type) type {
 
         pub fn handler(self: *Self) Handler {
             return .{
-                .ctx = self,
+                .ptr = self,
                 .handleFn = &handle,
             };
         }

@@ -3,7 +3,7 @@ const Allocator = std.mem.Allocator;
 const Arena = std.heap.ArenaAllocator;
 const Vec = std.ArrayList;
 
-pub fn bubbleSort(comptime T: type, arr: []T) void {
+pub fn bubbleSort(T: type, arr: []T) void {
     for (0..arr.len - 1) |i| {
         for (0..arr.len - 1 - i) |j| {
             if (arr[j] > arr[j + 1]) {
@@ -15,7 +15,7 @@ pub fn bubbleSort(comptime T: type, arr: []T) void {
     }
 }
 
-pub fn sorted(comptime T: type, arr: []T) bool {
+pub fn sorted(T: type, arr: []T) bool {
     for (0..arr.len - 1) |i| {
         if (arr[i] > arr[i + 1]) {
             return false;
@@ -25,10 +25,11 @@ pub fn sorted(comptime T: type, arr: []T) bool {
     return true;
 }
 
-pub fn quickSort(comptime T: type, arr: []T, lo: usize, hi: usize) void {
+pub fn quickSort(T: type, arr: []T, lo: usize, hi: usize) void {
     if (lo >= hi) {
         return;
     }
+    // lo -= 1;
 
     const pvt_idx = partition(T, arr, lo, hi);
 
@@ -36,7 +37,7 @@ pub fn quickSort(comptime T: type, arr: []T, lo: usize, hi: usize) void {
     quickSort(T, arr, pvt_idx + 1, hi);
 }
 
-fn partition(comptime T: type, arr: []T, lo: usize, hi: usize) usize {
+fn partition(T: type, arr: []T, lo: usize, hi: usize) usize {
     const pvt = arr[hi];
     var i: isize = @bitCast(lo);
     i -= 1;
@@ -60,16 +61,14 @@ fn partition(comptime T: type, arr: []T, lo: usize, hi: usize) usize {
 pub fn ListNode(comptime T: type) type {
     return struct {
         val: T,
-        next: ?*Self,
-        prev: ?*Self,
+        next: ?*Self = null,
+        prev: ?*Self = null,
 
         const Self = @This();
 
         pub fn init(val: T) Self {
             return .{
                 .val = val,
-                .next = null,
-                .prev = null,
             };
         }
     };
@@ -77,16 +76,14 @@ pub fn ListNode(comptime T: type) type {
 
 pub fn Stack(comptime T: type) type {
     return struct {
-        len: usize,
-        top: ?*ListNode(T),
+        len: usize = 0,
+        top: ?*ListNode(T) = null,
         arena: Arena,
 
         const Self = @This();
 
         pub fn init(allocator: Allocator) Self {
             return .{
-                .len = 0,
-                .top = null,
                 .arena = std.heap.ArenaAllocator.init(allocator),
             };
         }
@@ -131,26 +128,23 @@ pub fn Stack(comptime T: type) type {
 
 pub fn Queue(comptime T: type) type {
     return struct {
-        len: usize,
-        head: ?*ListNode(T),
-        tail: ?*ListNode(T),
+        len: usize = 0,
+        head: ?*ListNode(T) = null,
+        tail: ?*ListNode(T) = null,
         arena: Arena,
 
         const Self = @This();
 
         pub fn init(alloc: Allocator) Self {
             return .{
-                .len = 0,
-                .head = null,
-                .tail = null,
                 .arena = std.heap.ArenaAllocator.init(alloc),
             };
         }
 
         pub fn enqueue(self: *Self, val: T) !void {
-            const alloc = self.arena.allocator();
+            const allocator = self.arena.allocator();
 
-            const node = try alloc.create(ListNode(T));
+            const node = try allocator.create(ListNode(T));
             node.* = ListNode(T).init(val);
 
             self.len += 1;
@@ -191,13 +185,11 @@ pub fn Queue(comptime T: type) type {
         }
 
         pub fn first(self: Self) ?T {
-            const head = self.head orelse return null;
-            return head.val;
+            return (self.head orelse return null).val;
         }
 
         pub fn last(self: Self) ?T {
-            const tail = self.tail orelse return null;
-            return tail.val;
+            return (self.tail orelse return null).val;
         }
 
         pub fn deinit(self: Self) void {
@@ -209,16 +201,14 @@ pub fn Queue(comptime T: type) type {
 pub fn BinaryTreeNode(comptime T: type) type {
     return struct {
         val: T,
-        right: ?*Self,
-        left: ?*Self,
+        right: ?*Self = null,
+        left: ?*Self = null,
 
         const Self = @This();
 
         pub fn init(val: T) Self {
             return .{
                 .val = val,
-                .left = null,
-                .right = null,
             };
         }
 
@@ -246,14 +236,13 @@ pub fn BinaryTreeNode(comptime T: type) type {
 
 pub fn BSTree(comptime T: type) type {
     return struct {
-        root: ?*BinaryTreeNode(T),
+        root: ?*BinaryTreeNode(T) = null,
         arena: Arena,
 
         const Self = @This();
 
         pub fn init(allocator: Allocator) Self {
             return .{
-                .root = null,
                 .arena = std.heap.ArenaAllocator.init(allocator),
             };
         }
@@ -300,24 +289,24 @@ pub fn BSTree(comptime T: type) type {
         }
 
         pub fn breathFirstSearch(self: *Self, val: T) !bool {
-            var queue = Queue(*BinaryTreeNode(T)).init(self.arena.allocator());
-            defer queue.deinit();
-
             if (self.root) |root| {
+                var queue = Queue(*BinaryTreeNode(T)).init(self.arena.allocator());
+                defer queue.deinit();
+
                 try queue.enqueue(root);
+
+                while (queue.len > 0) {
+                    const node = queue.dequeue() orelse continue;
+
+                    if (node.val == val) return true;
+
+                    if (node.left) |lnode| try queue.enqueue(lnode);
+
+                    if (node.right) |rnode| try queue.enqueue(rnode);
+                }
+
+                return false;
             } else return false;
-
-            while (queue.len > 0) {
-                const node = queue.dequeue() orelse continue;
-
-                if (node.val == val) return true;
-
-                if (node.left) |lnode| try queue.enqueue(lnode);
-
-                if (node.right) |rnode| try queue.enqueue(rnode);
-            }
-
-            return false;
         }
 
         pub fn deinit(self: Self) void {
@@ -355,3 +344,74 @@ fn postWalk(comptime T: type, curr: ?*BinaryTreeNode(T), path: *Vec(T)) !void {
     try postWalk(T, node.right, path);
     try path.append(node.val);
 }
+
+pub const String = struct {
+    data: []u8 = undefined,
+    len: usize = 0,
+    cap: usize = 0,
+    allocator: Allocator,
+
+    const Self = @This();
+
+    pub fn init(allocator: Allocator) Self {
+        return .{
+            .allocator = allocator,
+        };
+    }
+
+    pub fn deinit(self: Self) void {
+        self.allocator.free(self.data);
+    }
+
+    pub fn from(self: Self, str: []const u8) !Self {
+        const tmp = try self.allocator.alloc(u8, str.len);
+        @memcpy(tmp, str);
+
+        return .{
+            .data = tmp,
+            .len = str.len,
+            .cap = str.len,
+            .allocator = self.allocator,
+        };
+    }
+
+    pub fn withCapacity(self: Self, capacity: usize) !Self {
+        return .{
+            .data = try self.allocator.alloc(u8, capacity),
+            .cap = capacity,
+            .allocator = self.allocator,
+        };
+    }
+
+    pub fn reverse(self: *Self) !void {
+        if (self.len == 0) return error.NoData;
+
+        const old = self.data;
+        defer self.allocator.free(old);
+
+        var rvrs = try self.allocator.alloc(u8, self.len);
+
+        var j: usize = self.len - 1;
+        for (self.data, 0..) |_, i| {
+            rvrs[i] = self.data[j];
+
+            if (j != 0) j -= 1;
+        }
+
+        self.data = rvrs;
+    }
+
+    pub fn set(self: *Self, str: []const u8) !void {
+        if (self.cap == str.len) {
+            @memcpy(self.data, str);
+            return;
+        }
+
+        const tmp: []u8 = try self.allocator.realloc(self.data, str.len);
+        @memcpy(tmp, str);
+
+        self.len = str.len;
+        self.cap = str.len;
+        self.data = tmp;
+    }
+};
