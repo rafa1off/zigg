@@ -1,8 +1,8 @@
 .{
-    .name = "zigg",
+    .name = .zigg,
     .version = "0.0.0",
-
-    .minimum_zig_version = "0.13.0",
+    .fingerprint = 0x9baa66d00ff55ba1,
+    .minimum_zig_version = "0.14.0",
 
     .dependencies = .{},
 
@@ -10,5 +10,6 @@
         "build.zig",
         "build.zig.zon",
         "src",
+        "lib",
     },
 }
