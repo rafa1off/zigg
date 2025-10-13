@@ -141,3 +141,18 @@ test "string" {
     try expect(std.mem.eql(u8, str.data, "ozne"));
     try expect(str.len == 4);
 }
+
+test "ring buffer" {
+    var ring = dsa.RingBuffer(u8, 4).new();
+
+    ring.add(1);
+    ring.add(2);
+    ring.add(3);
+    _ = ring.remove();
+    _ = ring.remove();
+    _ = ring.remove();
+    ring.add(4);
+
+    // print("arr: {any}\n", .{ring.buffer});
+    try expect(std.mem.eql(?u8, &[_]?u8{ 4, null, null, null }, &ring.buffer));
+}

@@ -415,3 +415,63 @@ pub const String = struct {
         self.data = tmp;
     }
 };
+
+pub fn RingBuffer(comptime T: type, size: usize) type {
+    return struct {
+        buffer: [size]?T,
+        cap: usize = size,
+        head_idx: usize,
+        tail_idx: usize,
+
+        const Self = @This();
+
+        pub fn new() Self {
+            var buf: [size]?T = undefined;
+            for (0..buf.len) |i| {
+                buf[i] = null;
+            }
+
+            const idx = std.math.divFloor(usize, buf.len, 2) catch 0;
+
+            return Self{
+                .buffer = buf,
+                .head_idx = idx,
+                .tail_idx = idx,
+            };
+        }
+
+        pub fn add(self: *Self, val: T) void {
+            if (self.buffer[self.head_idx] == null) {
+                self.buffer[self.head_idx] = val;
+                return;
+            }
+
+            if (self.head_idx == self.cap - 1) {
+                self.head_idx = 0;
+                self.buffer[self.head_idx] = val;
+                return;
+            }
+
+            self.head_idx += 1;
+            self.buffer[self.head_idx] = val;
+        }
+
+        pub fn remove(self: *Self) ?T {
+            const discard = self.buffer[self.tail_idx];
+
+            if (self.tail_idx == self.cap - 1) {
+                self.buffer[self.tail_idx] = null;
+                self.tail_idx = 0;
+            } else {
+                self.buffer[self.tail_idx] = null;
+                self.tail_idx += 1;
+            }
+
+            return discard;
+        }
+
+        pub fn peek(self: Self) ?T {
+            return self.buffer[self.head_idx];
+        }
+    };
+}
