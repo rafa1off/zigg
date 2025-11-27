@@ -265,25 +265,28 @@ pub fn BSTree(comptime T: type) type {
         }
 
         pub fn preOrderSearch(self: *Self) !Vec(T) {
-            var arr = Vec(T).init(self.arena.allocator());
+            const inner_allocator = self.arena.allocator();
+            var arr = Vec(T).empty;
 
-            try preWalk(T, self.root, &arr);
+            try preWalk(T, inner_allocator, self.root, &arr);
 
             return arr;
         }
 
         pub fn inOrderSearch(self: *Self) !Vec(T) {
-            var arr = Vec(T).init(self.arena.allocator());
+            const inner_allocator = self.arena.allocator();
+            var arr = Vec(T).empty;
 
-            try inWalk(T, self.root, &arr);
+            try inWalk(T, inner_allocator, self.root, &arr);
 
             return arr;
         }
 
         pub fn postOrderSearch(self: *Self) !Vec(T) {
-            var arr = Vec(T).init(self.arena.allocator());
+            const inner_allocator = self.arena.allocator();
+            var arr = Vec(T).empty;
 
-            try postWalk(T, self.root, &arr);
+            try postWalk(T, inner_allocator, self.root, &arr);
 
             return arr;
         }
@@ -315,34 +318,34 @@ pub fn BSTree(comptime T: type) type {
     };
 }
 
-fn preWalk(comptime T: type, curr: ?*BinaryTreeNode(T), path: *Vec(T)) !void {
+fn preWalk(comptime T: type, allocator: Allocator, curr: ?*BinaryTreeNode(T), path: *Vec(T)) !void {
     if (curr == null) return;
 
     const node = curr.?;
 
-    try path.append(node.val);
-    try preWalk(T, node.left, path);
-    try preWalk(T, node.right, path);
+    try path.append(allocator, node.val);
+    try preWalk(T, allocator, node.left, path);
+    try preWalk(T, allocator, node.right, path);
 }
 
-fn inWalk(comptime T: type, curr: ?*BinaryTreeNode(T), path: *Vec(T)) !void {
+fn inWalk(comptime T: type, allocator: Allocator, curr: ?*BinaryTreeNode(T), path: *Vec(T)) !void {
     if (curr == null) return;
 
     const node = curr.?;
 
-    try inWalk(T, node.left, path);
-    try path.append(node.val);
-    try inWalk(T, node.right, path);
+    try inWalk(T, allocator, node.left, path);
+    try path.append(allocator, node.val);
+    try inWalk(T, allocator, node.right, path);
 }
 
-fn postWalk(comptime T: type, curr: ?*BinaryTreeNode(T), path: *Vec(T)) !void {
+fn postWalk(comptime T: type, allocator: Allocator, curr: ?*BinaryTreeNode(T), path: *Vec(T)) !void {
     if (curr == null) return;
 
     const node = curr.?;
 
-    try postWalk(T, node.left, path);
-    try postWalk(T, node.right, path);
-    try path.append(node.val);
+    try postWalk(T, allocator, node.left, path);
+    try postWalk(T, allocator, node.right, path);
+    try path.append(allocator, node.val);
 }
 
 pub const String = struct {

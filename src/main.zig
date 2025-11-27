@@ -1,7 +1,10 @@
 const std = @import("std");
 const lib = @import("zigg");
 
-const stdout = std.io.getStdOut().writer();
+var stdout_buf: [1024]u8 = undefined;
+var stdout_writer = std.fs.File.stdout().writer(&stdout_buf);
+const stdout = &stdout_writer.interface;
+
 const Base64 = lib.Base64;
 
 pub fn main() !void {
@@ -42,6 +45,7 @@ pub fn main() !void {
     t3.join();
 
     try base64fn();
+    try stdout.flush();
 }
 
 pub fn base64fn() !void {
